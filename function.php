@@ -252,8 +252,37 @@ function createProcessHistory(array $steps, string $type = 'sort'): string {
         $output .= "<td class='px-3 py-2 font-mono text-indigo-600 font-bold'>" . ($i + 1) . "</td>";
         
         // Array state display
-        $output .= "<td class='px-3 py-2'><div class='flex flex-wrap gap-1'>";
-        if (isset($step['array'])) {
+        $output .= "<td class='px-3 py-2'><div class='flex flex-wrap gap-1 items-center'>";
+        
+        // Handle merge sort steps specially
+        if ($type === 'merge' && isset($step['type'])) {
+            if ($step['type'] === 'divide' && isset($step['left']) && isset($step['right'])) {
+                // Show left array
+                $output .= "<div class='flex gap-0.5 mr-2'>";
+                foreach ($step['left'] as $val) {
+                    $output .= "<span class='inline-flex items-center justify-center w-8 h-8 rounded bg-blue-300 text-blue-900 text-xs font-bold'>{$val}</span>";
+                }
+                $output .= "</div>";
+                $output .= "<span class='text-slate-400 text-xs mx-1'>|</span>";
+                // Show right array
+                $output .= "<div class='flex gap-0.5'>";
+                foreach ($step['right'] as $val) {
+                    $output .= "<span class='inline-flex items-center justify-center w-8 h-8 rounded bg-purple-300 text-purple-900 text-xs font-bold'>{$val}</span>";
+                }
+                $output .= "</div>";
+            } elseif ($step['type'] === 'merge' && isset($step['result'])) {
+                // Show merged result
+                foreach ($step['result'] as $val) {
+                    $output .= "<span class='inline-flex items-center justify-center w-8 h-8 rounded bg-emerald-400 text-white text-xs font-bold'>{$val}</span>";
+                }
+            } elseif (isset($step['array'])) {
+                // Initial or final state
+                foreach ($step['array'] as $val) {
+                    $cardClass = $step['type'] === 'final' ? 'bg-emerald-400 text-white' : 'bg-slate-200 text-slate-700';
+                    $output .= "<span class='inline-flex items-center justify-center w-8 h-8 rounded {$cardClass} text-xs font-bold'>{$val}</span>";
+                }
+            }
+        } elseif (isset($step['array'])) {
             foreach ($step['array'] as $idx => $val) {
                 $cardClass = 'bg-slate-200 text-slate-700';
                 if (isset($step['comparing']) && in_array($idx, $step['comparing'])) {
@@ -293,6 +322,10 @@ function createProcessHistory(array $steps, string $type = 'sort'): string {
             $statusIcon = "<span class='inline-block w-2 h-2 bg-red-500 rounded-full mr-1'></span>";
         } elseif (strpos($desc, 'Swap') !== false) {
             $statusIcon = "<span class='inline-block w-2 h-2 bg-red-400 rounded-full mr-1'></span>";
+        } elseif (strpos($desc, 'Merge') !== false) {
+            $statusIcon = "<span class='inline-block w-2 h-2 bg-emerald-400 rounded-full mr-1'></span>";
+        } elseif (strpos($desc, 'Divide') !== false) {
+            $statusIcon = "<span class='inline-block w-2 h-2 bg-purple-400 rounded-full mr-1'></span>";
         } elseif (strpos($desc, 'Compar') !== false || strpos($desc, 'Check') !== false) {
             $statusIcon = "<span class='inline-block w-2 h-2 bg-amber-400 rounded-full mr-1'></span>";
         }

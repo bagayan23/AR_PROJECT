@@ -2,6 +2,19 @@
    OS and Data Algorithm Simulator - Styles
    ===================================================== */
 
+/* Animated Gradient Background */
+body {
+    background: linear-gradient(-45deg, #e0e7ff, #fce7f3, #dbeafe, #d1fae5, #fef3c7);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 /* Custom Styles for Algorithm Blocks (Frames/Blocks) */
 .frame, .block {
     display: inline-flex;
@@ -31,9 +44,9 @@
 }
 
 .tab-button.active {
-    border-bottom: 4px solid #3b82f6;
-    color: #1d4ed8;
-    font-weight: 600;
+    background: white;
+    color: #4f46e5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .section-content {
