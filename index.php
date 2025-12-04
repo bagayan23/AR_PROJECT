@@ -15,33 +15,8 @@ $activeTab = $_POST['activeTab'] ?? 'sort';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OS and Data Algorithm Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom Styles for Algorithm Blocks (Frames/Blocks) */
-        .frame, .block {
-            display: inline-flex;
-            width: 40px;
-            height: 40px;
-            margin: 2px;
-            border: 2px solid #333;
-            text-align: center;
-            justify-content: center;
-            align-items: center;
-            line-height: 1;
-            font-weight: bold;
-            border-radius: 6px;
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-        }
-        .used { background-color: #a7f3d0; color: #065f46; border-color: #34d399; } /* lightgreen for used frames */
-        .free { background-color: #e5e7eb; color: #4b5563; border-color: #9ca3af; } /* lightgray for free/empty frames */
-        .tab-button.active {
-            border-bottom: 4px solid #3b82f6; /* Blue 500 */
-            color: #1d4ed8; /* Blue 700 */
-            font-weight: 600;
-        }
-        .section-content {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/animations.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen p-4 md:p-8 font-['Inter']">
 
@@ -176,64 +151,9 @@ $activeTab = $_POST['activeTab'] ?? 'sort';
     </div>
 
     <script>
+        // Initialize tabs when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            const tabs = document.querySelectorAll('.tab-button');
-            const sections = document.querySelectorAll('.section-content');
-            const activeTabInput = document.getElementById('activeTab');
-            
-            // Get the active tab from PHP or default to 'sort'
-            let activeTabId = activeTabInput.value || 'sort';
-
-            function showSection(targetId) {
-                // Remove active class from all buttons and hide all sections
-                tabs.forEach(tab => tab.classList.remove('active'));
-                sections.forEach(section => section.style.display = 'none');
-
-                // Add active class to the selected button
-                const activeBtn = document.querySelector(`.tab-button[data-target="${targetId}-section"]`);
-                if (activeBtn) {
-                    activeBtn.classList.add('active');
-                }
-
-                // Show the target section
-                const targetSection = document.getElementById(targetId + '-section');
-                if (targetSection) {
-                    targetSection.style.display = 'block';
-                }
-
-                // Update the hidden input field for PHP persistence
-                activeTabInput.value = targetId;
-            }
-
-            // Set up click listeners for the navigation buttons
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const targetId = this.getAttribute('data-target').replace('-section', '');
-                    showSection(targetId);
-                });
-            });
-
-            // Re-map PHP's simple activeTab value to the full section ID prefix
-            const phpActiveMap = {
-                'bubbleSort': 'sort',
-                'selectionSort': 'sort',
-                'mergeSort': 'sort',
-                'linearSearch': 'search',
-                'binarySearch': 'search',
-                'recursiveBinarySearch': 'search',
-                'firstFit': 'memory',
-                'fifoPaging': 'paging',
-                'lruPaging': 'paging',
-                // Fallback to the value from the hidden input itself
-                'sort': 'sort',
-                'search': 'search',
-                'memory': 'memory',
-                'paging': 'paging'
-            };
-
-            // Use the PHP-determined active tab on page load
-            const initialTab = phpActiveMap['<?= htmlspecialchars($_POST['action'] ?? $activeTab) ?>'] || 'sort';
-            showSection(initialTab);
+            initTabs('<?= htmlspecialchars($_POST['action'] ?? $activeTab) ?>');
         });
     </script>
 </body>
