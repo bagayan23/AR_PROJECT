@@ -507,6 +507,285 @@
    Memory Block Styles
    ===================================================== */
 
+.memory-visualization {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1rem;
+}
+
+.memory-section, .process-section {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.section-header svg {
+    color: #6366f1;
+}
+
+.memory-blocks-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.memory-block-card {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    min-width: 110px;
+    text-align: center;
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.memory-block-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.status-badge.checking {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    animation: pulse 1s ease infinite;
+}
+
+.status-badge.allocated {
+    background: linear-gradient(135deg, #34d399, #10b981);
+}
+
+.block-header {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+}
+
+.block-visual {
+    margin: 0.75rem 0;
+}
+
+.block-bar {
+    width: 100%;
+    height: 60px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column-reverse;
+    border: 1px solid #e2e8f0;
+}
+
+.block-used {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.block-used::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.block-free {
+    background: transparent;
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.block-info {
+    font-size: 0.8rem;
+}
+
+.block-free-size {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.block-used-size {
+    color: #6366f1;
+    font-size: 0.75rem;
+}
+
+.block-total {
+    color: #94a3b8;
+    font-size: 0.7rem;
+    margin-top: 0.25rem;
+}
+
+/* Allocation Indicator */
+.allocation-indicator {
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 0;
+}
+
+.arrow-down {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.arrow-down.searching {
+    color: #6366f1;
+}
+
+.arrow-down.success {
+    color: #10b981;
+    background: #d1fae5;
+}
+
+.arrow-down.failed {
+    color: #ef4444;
+    background: #fee2e2;
+}
+
+/* Processes Grid */
+.processes-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.process-card {
+    background: white;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    min-width: 90px;
+    text-align: center;
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.process-card.active {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-color: #fbbf24;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+.process-card.completed {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    border-color: #34d399;
+}
+
+.process-card.allocated {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    border-color: #10b981;
+    color: white;
+}
+
+.process-card.failed {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border-color: #f87171;
+}
+
+.process-header {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: inherit;
+}
+
+.process-card:not(.allocated):not(.active) .process-header {
+    color: #1e293b;
+}
+
+.process-size {
+    font-size: 0.9rem;
+    color: inherit;
+    opacity: 0.9;
+}
+
+.alloc-info {
+    font-size: 0.75rem;
+    color: #10b981;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.status-text {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.status-text.success {
+    color: #10b981;
+}
+
+.status-text.failed {
+    color: #ef4444;
+}
+
+.status-text.active {
+    color: #f59e0b;
+}
+
+/* Memory Legend */
+.memory-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.memory-legend .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+/* Legacy memory block styles - keeping for compatibility */
 .memory-block {
     transition: all 0.3s ease;
     border-radius: 8px;

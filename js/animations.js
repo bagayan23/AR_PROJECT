@@ -24,6 +24,22 @@ function getState(animId) {
 }
 
 // =====================================================
+// Process History Toggle
+// =====================================================
+function toggleHistory(historyId) {
+    const content = document.getElementById(historyId);
+    const icon = document.getElementById(historyId + '_icon');
+    const text = document.getElementById(historyId + '_text');
+    
+    if (content && icon && text) {
+        content.classList.toggle('hidden');
+        const isHidden = content.classList.contains('hidden');
+        text.textContent = isHidden ? 'Show' : 'Hide';
+        icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+}
+
+// =====================================================
 // Sorting Animation Functions
 // =====================================================
 function initSortAnimation(animId, steps) {
@@ -384,6 +400,18 @@ function resetSearchAnimation(animId) {
     renderSearchStep(animId, 0);
 }
 
+function updateSearchSpeed(animId, value) {
+    const state = getState(animId);
+    // Invert the value: lower slider = slower (higher delay), higher slider = faster (lower delay)
+    state.speed = 2100 - parseInt(value);
+    
+    // If currently playing, restart with new speed
+    if (state.playing) {
+        pauseSearchAnimation(animId);
+        playSearchAnimation(animId);
+    }
+}
+
 // =====================================================
 // Memory Allocation Animation Functions
 // =====================================================
@@ -405,60 +433,122 @@ function renderMemoryStep(animId, stepIndex) {
     
     if (!container) return;
     
-    let html = '<div class="space-y-4">';
+    let html = '<div class="memory-visualization">';
     
-    // Memory Blocks
-    html += '<div class="mb-4"><span class="font-semibold text-gray-700">Memory Blocks:</span></div>';
-    html += '<div class="flex flex-wrap gap-2 justify-center">';
+    // Memory Blocks Section
+    html += '<div class="memory-section">';
+    html += '<div class="section-header"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg> Memory Blocks</div>';
+    html += '<div class="memory-blocks-grid">';
     
     step.blocks.forEach((size, i) => {
         const origSize = step.originalBlocks[i];
-        const usedPercent = ((origSize - size) / origSize) * 100;
-        let blockClasses = 'memory-block border-2 relative overflow-hidden';
+        const usedSize = origSize - size;
+        const usedPercent = (usedSize / origSize) * 100;
+        const freePercent = 100 - usedPercent;
+        
+        let blockStatus = 'available';
+        let statusIcon = '';
+        let borderColor = 'border-slate-300';
+        let glowClass = '';
         
         if (step.currentBlock === i) {
-            blockClasses += ' checking border-yellow-500';
-        } else if (step.allocation && step.allocation.includes(i)) {
-            blockClasses += ' border-green-500';
-        } else {
-            blockClasses += ' border-gray-300 bg-gray-100';
+            blockStatus = 'checking';
+            borderColor = 'border-amber-400';
+            glowClass = 'ring-2 ring-amber-300 ring-offset-2';
+            statusIcon = '<div class="status-badge checking"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>';
+        } else if (step.allocated && step.currentBlock === i) {
+            blockStatus = 'allocated';
+            borderColor = 'border-emerald-500';
+            glowClass = 'ring-2 ring-emerald-300 ring-offset-2';
+            statusIcon = '<div class="status-badge allocated"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div>';
+        } else if (usedPercent > 0) {
+            blockStatus = 'partial';
+            borderColor = 'border-emerald-400';
         }
         
-        html += `<div class="${blockClasses}" style="min-width: 100px;">
-            <div class="absolute bottom-0 left-0 right-0 bg-green-400 transition-all duration-300" style="height: ${usedPercent}%;"></div>
-            <div class="relative z-10">
-                <div class="font-bold">Block ${i + 1}</div>
-                <div class="text-sm">${size}KB free</div>
-                <div class="text-xs text-gray-500">(${origSize}KB total)</div>
-            </div>
-        </div>`;
+        html += `<div class="memory-block-card ${glowClass}">`;
+        html += statusIcon;
+        html += `<div class="block-header">Block ${i + 1}</div>`;
+        html += '<div class="block-visual">';
+        html += `<div class="block-bar">`;
+        html += `<div class="block-used" style="height: ${usedPercent}%"></div>`;
+        html += `<div class="block-free" style="height: ${freePercent}%"></div>`;
+        html += '</div>';
+        html += '</div>';
+        html += '<div class="block-info">';
+        html += `<div class="block-free-size">${size}KB <span class="text-slate-400">free</span></div>`;
+        if (usedSize > 0) {
+            html += `<div class="block-used-size">${usedSize}KB <span class="text-emerald-600">used</span></div>`;
+        }
+        html += `<div class="block-total">${origSize}KB total</div>`;
+        html += '</div>';
+        html += '</div>';
     });
     
-    html += '</div>';
+    html += '</div></div>';
     
-    // Processes
-    html += '<div class="mt-6 mb-2"><span class="font-semibold text-gray-700">Processes:</span></div>';
-    html += '<div class="flex flex-wrap gap-2 justify-center">';
+    // Allocation Arrow
+    if (step.currentProcess !== undefined && step.currentProcess >= 0) {
+        html += '<div class="allocation-indicator">';
+        if (step.allocated) {
+            html += '<div class="arrow-down success"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg></div>';
+        } else if (step.allocated === false) {
+            html += '<div class="arrow-down failed"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></div>';
+        } else {
+            html += '<div class="arrow-down searching"><svg class="w-8 h-8 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg></div>';
+        }
+        html += '</div>';
+    }
+    
+    // Processes Section
+    html += '<div class="process-section">';
+    html += '<div class="section-header"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6"/></svg> Processes</div>';
+    html += '<div class="processes-grid">';
     
     step.processes.forEach((size, i) => {
-        let procClasses = 'px-4 py-2 rounded-lg font-bold transition-all duration-300';
+        let processStatus = 'waiting';
+        let processClasses = 'process-card';
+        let statusText = '';
+        let allocInfo = '';
         
         if (step.currentProcess === i) {
-            procClasses += ' bg-yellow-400 text-gray-800 scale-110';
+            if (step.allocated === true) {
+                processStatus = 'allocated';
+                processClasses += ' allocated';
+                statusText = '<span class="status-text success">✓ Allocated</span>';
+            } else if (step.allocated === false) {
+                processStatus = 'failed';
+                processClasses += ' failed';
+                statusText = '<span class="status-text failed">✗ Failed</span>';
+            } else {
+                processStatus = 'active';
+                processClasses += ' active';
+                statusText = '<span class="status-text active">Processing...</span>';
+            }
         } else if (step.allocation && step.allocation[i] !== -1) {
-            procClasses += ' bg-green-500 text-white';
-        } else if (step.allocated === false && step.currentProcess === i) {
-            procClasses += ' bg-red-500 text-white';
-        } else {
-            procClasses += ' bg-blue-500 text-white';
+            processStatus = 'completed';
+            processClasses += ' completed';
+            allocInfo = `<div class="alloc-info">→ Block ${step.allocation[i] + 1}</div>`;
         }
         
-        const allocatedTo = step.allocation && step.allocation[i] !== -1 ? ` → B${step.allocation[i] + 1}` : '';
-        
-        html += `<div class="${procClasses}">P${i + 1}: ${size}KB${allocatedTo}</div>`;
+        html += `<div class="${processClasses}">`;
+        html += `<div class="process-header">P${i + 1}</div>`;
+        html += `<div class="process-size">${size}KB</div>`;
+        html += allocInfo;
+        html += statusText;
+        html += '</div>';
     });
     
+    html += '</div></div>';
+    
+    // Legend
+    html += '<div class="memory-legend">';
+    html += '<div class="legend-item"><span class="legend-dot bg-slate-300"></span> Available</div>';
+    html += '<div class="legend-item"><span class="legend-dot bg-amber-400"></span> Checking</div>';
+    html += '<div class="legend-item"><span class="legend-dot bg-emerald-500"></span> Allocated</div>';
+    html += '<div class="legend-item"><span class="legend-dot bg-red-500"></span> Failed</div>';
     html += '</div>';
+    
     html += '</div>';
     
     container.innerHTML = html;
@@ -495,6 +585,18 @@ function resetMemoryAnimation(animId) {
     const state = getState(animId);
     state.currentStep = 0;
     renderMemoryStep(animId, 0);
+}
+
+function updateMemorySpeed(animId, value) {
+    const state = getState(animId);
+    // Invert the value: lower slider = slower (higher delay), higher slider = faster (lower delay)
+    state.speed = 2100 - parseInt(value);
+    
+    // If currently playing, restart with new speed
+    if (state.playing) {
+        pauseMemoryAnimation(animId);
+        playMemoryAnimation(animId);
+    }
 }
 
 // =====================================================
@@ -628,6 +730,18 @@ function resetPagingAnimation(animId) {
     renderPagingStep(animId, 0);
 }
 
+function updatePagingSpeed(animId, value) {
+    const state = getState(animId);
+    // Invert the value: lower slider = slower (higher delay), higher slider = faster (lower delay)
+    state.speed = 2100 - parseInt(value);
+    
+    // If currently playing, restart with new speed
+    if (state.playing) {
+        pausePagingAnimation(animId);
+        playPagingAnimation(animId);
+    }
+}
+
 // =====================================================
 // Tab Navigation
 // =====================================================
@@ -710,15 +824,18 @@ window.initSearchAnimation = initSearchAnimation;
 window.playSearchAnimation = playSearchAnimation;
 window.pauseSearchAnimation = pauseSearchAnimation;
 window.resetSearchAnimation = resetSearchAnimation;
+window.updateSearchSpeed = updateSearchSpeed;
 
 window.initMemoryAnimation = initMemoryAnimation;
 window.playMemoryAnimation = playMemoryAnimation;
 window.pauseMemoryAnimation = pauseMemoryAnimation;
 window.resetMemoryAnimation = resetMemoryAnimation;
+window.updateMemorySpeed = updateMemorySpeed;
 
 window.initPagingAnimation = initPagingAnimation;
 window.playPagingAnimation = playPagingAnimation;
 window.pausePagingAnimation = pausePagingAnimation;
 window.resetPagingAnimation = resetPagingAnimation;
+window.updatePagingSpeed = updatePagingSpeed;
 
 window.initTabs = initTabs;

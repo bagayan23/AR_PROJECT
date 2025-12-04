@@ -214,8 +214,7 @@ function createSortingSteps(array $steps): string {
     $output .= "<button onclick='playSortAnimation(\"{$animId}\")' class='px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z'/></svg> Play</button>";
     $output .= "<button onclick='pauseSortAnimation(\"{$animId}\")' class='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z'/></svg> Pause</button>";
     $output .= "<button onclick='resetSortAnimation(\"{$animId}\")' class='px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z' clip-rule='evenodd'/></svg> Reset</button>";
-    $output .= "<input type='range' id='{$animId}_speed' min='100' max='2000' value='500' class='ml-4 w-32' onchange='updateSpeed(\"{$animId}\", this.value)'>";
-    $output .= "<span class='text-sm text-gray-600'>Speed</span>";
+    $output .= "<div class='ml-4 flex items-center gap-2'><span class='text-xs text-gray-500'>Slow</span><input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-500' onchange='updateSpeed(\"{$animId}\", this.value)'><span class='text-xs text-gray-500'>Fast</span></div>";
     $output .= "<span class='ml-auto text-sm text-gray-500'>Step: <span id='{$animId}_step'>0</span>/<span id='{$animId}_total'>" . count($steps) . "</span></span>";
     $output .= "</div>";
     $output .= "<div class='visual-display'></div>";
@@ -223,6 +222,85 @@ function createSortingSteps(array $steps): string {
     $output .= "<script>(function(){ var fn = function(){ if(typeof initSortAnimation === 'function'){ initSortAnimation('{$animId}', {$stepsJson}); } else { setTimeout(fn, 50); } }; if(document.readyState === 'complete'){ fn(); } else { window.addEventListener('load', fn); } })();</script>";
     $output .= "</div>";
     
+    return $output;
+}
+
+/**
+ * Creates a process history section showing step-by-step value changes
+ */
+function createProcessHistory(array $steps, string $type = 'sort'): string {
+    $historyId = 'history_' . bin2hex(random_bytes(4));
+    
+    $output = "<div class='process-history mt-6'>";
+    $output .= "<div class='history-header flex items-center justify-between p-3 bg-gradient-to-r from-slate-100 to-slate-50 rounded-t-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition' onclick='toggleHistory(\"{$historyId}\")'>";
+    $output .= "<h5 class='text-md font-bold flex items-center gap-2 text-slate-700'>";
+    $output .= "<svg class='w-5 h-5 text-indigo-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>";
+    $output .= "Process History <span class='text-xs font-normal text-slate-400'>(" . count($steps) . " steps)</span></h5>";
+    $output .= "<button id='{$historyId}_btn' class='flex items-center gap-1 text-sm px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-full transition font-medium'>";
+    $output .= "<svg id='{$historyId}_icon' class='w-4 h-4 transition-transform duration-300' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/></svg>";
+    $output .= "<span id='{$historyId}_text'>Show</span></button>";
+    $output .= "</div>";
+    $output .= "<div id='{$historyId}' class='history-content hidden bg-gradient-to-br from-slate-50 to-slate-100 rounded-b-xl border border-t-0 border-slate-200 shadow-sm max-h-96 overflow-y-auto'>";
+    $output .= "<table class='w-full text-sm'>";
+    $output .= "<thead class='bg-slate-200 sticky top-0'>";
+    $output .= "<tr><th class='px-3 py-2 text-left font-semibold text-slate-600'>Step</th><th class='px-3 py-2 text-left font-semibold text-slate-600'>Array State</th><th class='px-3 py-2 text-left font-semibold text-slate-600'>Action</th></tr>";
+    $output .= "</thead><tbody>";
+    
+    foreach ($steps as $i => $step) {
+        $rowClass = $i % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+        $output .= "<tr class='{$rowClass} hover:bg-indigo-50 transition-colors'>";
+        $output .= "<td class='px-3 py-2 font-mono text-indigo-600 font-bold'>" . ($i + 1) . "</td>";
+        
+        // Array state display
+        $output .= "<td class='px-3 py-2'><div class='flex flex-wrap gap-1'>";
+        if (isset($step['array'])) {
+            foreach ($step['array'] as $idx => $val) {
+                $cardClass = 'bg-slate-200 text-slate-700';
+                if (isset($step['comparing']) && in_array($idx, $step['comparing'])) {
+                    $cardClass = 'bg-amber-400 text-amber-900';
+                } elseif (isset($step['swapped']) && in_array($idx, $step['swapped'])) {
+                    $cardClass = 'bg-red-400 text-white';
+                } elseif (isset($step['sorted']) && in_array($idx, $step['sorted'])) {
+                    $cardClass = 'bg-emerald-400 text-white';
+                } elseif (isset($step['currentIndex']) && $step['currentIndex'] === $idx) {
+                    $cardClass = 'bg-amber-400 text-amber-900';
+                } elseif (isset($step['found']) && $step['found'] && isset($step['currentIndex']) && $step['currentIndex'] === $idx) {
+                    $cardClass = 'bg-emerald-400 text-white';
+                } elseif (isset($step['checked']) && in_array($idx, $step['checked'])) {
+                    $cardClass = 'bg-gray-400 text-white';
+                } elseif (isset($step['mid']) && $step['mid'] === $idx) {
+                    $cardClass = 'bg-amber-400 text-amber-900';
+                } elseif (isset($step['eliminated']) && in_array($idx, $step['eliminated'])) {
+                    $cardClass = 'bg-gray-300 text-gray-500';
+                }
+                $output .= "<span class='inline-flex items-center justify-center w-8 h-8 rounded {$cardClass} text-xs font-bold'>{$val}</span>";
+            }
+        } elseif (isset($step['frames'])) {
+            // For paging algorithms
+            $output .= "<span class='text-slate-600'>Frames: [" . implode(', ', array_map(fn($f) => $f ?? '-', $step['frames'])) . "]</span>";
+        } elseif (isset($step['blocks'])) {
+            // For memory algorithms
+            $output .= "<span class='text-slate-600'>Blocks: [" . implode(', ', $step['blocks']) . "]</span>";
+        }
+        $output .= "</div></td>";
+        
+        // Description/Action
+        $desc = $step['description'] ?? '';
+        $statusIcon = '';
+        if (strpos($desc, '✓') !== false || strpos($desc, 'Found') !== false || strpos($desc, 'Sorted') !== false) {
+            $statusIcon = "<span class='inline-block w-2 h-2 bg-emerald-500 rounded-full mr-1'></span>";
+        } elseif (strpos($desc, '✗') !== false || strpos($desc, 'not found') !== false) {
+            $statusIcon = "<span class='inline-block w-2 h-2 bg-red-500 rounded-full mr-1'></span>";
+        } elseif (strpos($desc, 'Swap') !== false) {
+            $statusIcon = "<span class='inline-block w-2 h-2 bg-red-400 rounded-full mr-1'></span>";
+        } elseif (strpos($desc, 'Compar') !== false || strpos($desc, 'Check') !== false) {
+            $statusIcon = "<span class='inline-block w-2 h-2 bg-amber-400 rounded-full mr-1'></span>";
+        }
+        $output .= "<td class='px-3 py-2 text-slate-600'>{$statusIcon}{$desc}</td>";
+        $output .= "</tr>";
+    }
+    
+    $output .= "</tbody></table></div></div>";
     return $output;
 }
 
@@ -291,6 +369,7 @@ function bubbleSort(array $arr): string {
     $output .= "<span class='w-3 h-3 bg-indigo-500 rounded-full'></span> Bubble Sort Visualization</h4>";
     
     $output .= createSortingSteps($steps);
+    $output .= createProcessHistory($steps, 'sort');
     
     return $output;
 }
@@ -379,6 +458,7 @@ function selectionSort(array $arr): string {
     $output .= "<span class='w-3 h-3 bg-purple-500 rounded-full'></span> Selection Sort Visualization</h4>";
     
     $output .= createSortingSteps($steps);
+    $output .= createProcessHistory($steps, 'sort');
     
     return $output;
 }
@@ -485,13 +565,14 @@ function mergeSort(array $arr): string {
     $output .= "<button onclick='playMergeAnimation(\"{$animId}\")' class='px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z'/></svg> Play</button>";
     $output .= "<button onclick='pauseMergeAnimation(\"{$animId}\")' class='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z'/></svg> Pause</button>";
     $output .= "<button onclick='resetMergeAnimation(\"{$animId}\")' class='px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z' clip-rule='evenodd'/></svg> Reset</button>";
-    $output .= "<input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='ml-4 w-32' onchange='updateMergeSpeed(\"{$animId}\", this.value)'>";
-    $output .= "<span class='text-sm text-gray-600'>Speed</span>";
+    $output .= "<div class='ml-4 flex items-center gap-2'><span class='text-xs text-gray-500'>Slow</span><input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-500' onchange='updateMergeSpeed(\"{$animId}\", this.value)'><span class='text-xs text-gray-500'>Fast</span></div>";
     $output .= "</div>";
     $output .= "<div class='merge-visual-display p-4 bg-gray-50 rounded-lg min-h-[200px]'></div>";
     $output .= "<div class='step-description mt-2 p-2 bg-white border rounded text-sm font-mono'></div>";
     $output .= "<script>(function(){ var fn = function(){ if(typeof initMergeAnimation === 'function'){ initMergeAnimation('{$animId}', {$stepsJson}); } else { setTimeout(fn, 50); } }; if(document.readyState === 'complete'){ fn(); } else { window.addEventListener('load', fn); } })();</script>";
     $output .= "</div>";
+    
+    $output .= createProcessHistory($steps, 'merge');
     
     return $output;
 }
@@ -561,12 +642,15 @@ function linearSearch(array $arr, int $target): string {
     $output .= "<button onclick='playSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z'/></svg> Play</button>";
     $output .= "<button onclick='pauseSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z'/></svg> Pause</button>";
     $output .= "<button onclick='resetSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z' clip-rule='evenodd'/></svg> Reset</button>";
+    $output .= "<div class='ml-4 flex items-center gap-2'><span class='text-xs text-gray-500'>Slow</span><input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-500' onchange='updateSearchSpeed(\"{$animId}\", this.value)'><span class='text-xs text-gray-500'>Fast</span></div>";
     $output .= "<span class='ml-4 px-2 py-1 bg-red-100 text-red-800 rounded'>Target: <strong>{$target}</strong></span>";
     $output .= "</div>";
     $output .= "<div class='search-visual-display p-4 bg-gray-50 rounded-lg'></div>";
     $output .= "<div class='step-description mt-2 p-2 bg-white border rounded text-sm font-mono'></div>";
     $output .= "<script>(function(){ var fn = function(){ if(typeof initSearchAnimation === 'function'){ initSearchAnimation('{$animId}', {$stepsJson}, 'linear'); } else { setTimeout(fn, 50); } }; if(document.readyState === 'complete'){ fn(); } else { window.addEventListener('load', fn); } })();</script>";
     $output .= "</div>";
+    
+    $output .= createProcessHistory($steps, 'search');
     
     return $output;
 }
@@ -680,12 +764,15 @@ function jumpSearch(array $arr, int $target): string {
     $output .= "<button onclick='playSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z'/></svg> Play</button>";
     $output .= "<button onclick='pauseSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z'/></svg> Pause</button>";
     $output .= "<button onclick='resetSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z' clip-rule='evenodd'/></svg> Reset</button>";
+    $output .= "<div class='ml-4 flex items-center gap-2'><span class='text-xs text-gray-500'>Slow</span><input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-500' onchange='updateSearchSpeed(\"{$animId}\", this.value)'><span class='text-xs text-gray-500'>Fast</span></div>";
     $output .= "<span class='ml-4 px-2 py-1 bg-red-100 text-red-800 rounded'>Target: <strong>{$target}</strong></span>";
     $output .= "</div>";
     $output .= "<div class='search-visual-display p-4 bg-gray-50 rounded-lg'></div>";
     $output .= "<div class='step-description mt-2 p-2 bg-white border rounded text-sm font-mono'></div>";
     $output .= "<script>(function(){ var fn = function(){ if(typeof initSearchAnimation === 'function'){ initSearchAnimation('{$animId}', {$stepsJson}, 'jump'); } else { setTimeout(fn, 50); } }; if(document.readyState === 'complete'){ fn(); } else { window.addEventListener('load', fn); } })();</script>";
     $output .= "</div>";
+    
+    $output .= createProcessHistory($steps, 'search');
     
     return $output;
 }
@@ -796,12 +883,15 @@ function binarySearch(array $arr, int $target): string {
     $output .= "<button onclick='playSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z'/></svg> Play</button>";
     $output .= "<button onclick='pauseSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z'/></svg> Pause</button>";
     $output .= "<button onclick='resetSearchAnimation(\"{$animId}\")' class='px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z' clip-rule='evenodd'/></svg> Reset</button>";
+    $output .= "<div class='ml-4 flex items-center gap-2'><span class='text-xs text-gray-500'>Slow</span><input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-500' onchange='updateSearchSpeed(\"{$animId}\", this.value)'><span class='text-xs text-gray-500'>Fast</span></div>";
     $output .= "<span class='ml-4 px-2 py-1 bg-red-100 text-red-800 rounded'>Target: <strong>{$target}</strong></span>";
     $output .= "</div>";
     $output .= "<div class='search-visual-display p-4 bg-gray-50 rounded-lg'></div>";
     $output .= "<div class='step-description mt-2 p-2 bg-white border rounded text-sm font-mono'></div>";
     $output .= "<script>(function(){ var fn = function(){ if(typeof initSearchAnimation === 'function'){ initSearchAnimation('{$animId}', {$stepsJson}, 'binary'); } else { setTimeout(fn, 50); } }; if(document.readyState === 'complete'){ fn(); } else { window.addEventListener('load', fn); } })();</script>";
     $output .= "</div>";
+    
+    $output .= createProcessHistory($steps, 'search');
     
     return $output;
 }
@@ -890,11 +980,14 @@ function firstFit(array $blocks, array $processes): string {
     $output .= "<button onclick='playMemoryAnimation(\"{$animId}\")' class='px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z'/></svg> Play</button>";
     $output .= "<button onclick='pauseMemoryAnimation(\"{$animId}\")' class='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z'/></svg> Pause</button>";
     $output .= "<button onclick='resetMemoryAnimation(\"{$animId}\")' class='px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z' clip-rule='evenodd'/></svg> Reset</button>";
+    $output .= "<div class='ml-4 flex items-center gap-2'><span class='text-xs text-gray-500'>Slow</span><input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500' onchange='updateMemorySpeed(\"{$animId}\", this.value)'><span class='text-xs text-gray-500'>Fast</span></div>";
     $output .= "</div>";
     $output .= "<div class='memory-visual-display p-4 bg-gray-50 rounded-lg'></div>";
     $output .= "<div class='step-description mt-2 p-2 bg-white border rounded text-sm font-mono'></div>";
     $output .= "<script>(function(){ var fn = function(){ if(typeof initMemoryAnimation === 'function'){ initMemoryAnimation('{$animId}', {$stepsJson}); } else { setTimeout(fn, 50); } }; if(document.readyState === 'complete'){ fn(); } else { window.addEventListener('load', fn); } })();</script>";
     $output .= "</div>";
+    
+    $output .= createProcessHistory($steps, 'memory');
     
     return $output;
 }
@@ -961,11 +1054,14 @@ function fifoPaging(array $refString, int $frameSize): string {
     $output .= "<button onclick='playPagingAnimation(\"{$animId}\")' class='px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z'/></svg> Play</button>";
     $output .= "<button onclick='pausePagingAnimation(\"{$animId}\")' class='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z'/></svg> Pause</button>";
     $output .= "<button onclick='resetPagingAnimation(\"{$animId}\")' class='px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z' clip-rule='evenodd'/></svg> Reset</button>";
+    $output .= "<div class='ml-4 flex items-center gap-2'><span class='text-xs text-gray-500'>Slow</span><input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500' onchange='updatePagingSpeed(\"{$animId}\", this.value)'><span class='text-xs text-gray-500'>Fast</span></div>";
     $output .= "</div>";
     $output .= "<div class='paging-visual-display p-4 bg-gray-50 rounded-lg'></div>";
     $output .= "<div class='step-description mt-2 p-2 bg-white border rounded text-sm font-mono'></div>";
     $output .= "<script>(function(){ var fn = function(){ if(typeof initPagingAnimation === 'function'){ initPagingAnimation('{$animId}', {$stepsJson}, 'fifo'); } else { setTimeout(fn, 50); } }; if(document.readyState === 'complete'){ fn(); } else { window.addEventListener('load', fn); } })();</script>";
     $output .= "</div>";
+    
+    $output .= createProcessHistory($steps, 'paging');
     
     return $output;
 }
@@ -1050,11 +1146,14 @@ function lruPaging(array $refString, int $frameSize): string {
     $output .= "<button onclick='playPagingAnimation(\"{$animId}\")' class='px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z'/></svg> Play</button>";
     $output .= "<button onclick='pausePagingAnimation(\"{$animId}\")' class='px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path d='M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z'/></svg> Pause</button>";
     $output .= "<button onclick='resetPagingAnimation(\"{$animId}\")' class='px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition'><svg class='w-4 h-4 inline' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z' clip-rule='evenodd'/></svg> Reset</button>";
+    $output .= "<div class='ml-4 flex items-center gap-2'><span class='text-xs text-gray-500'>Slow</span><input type='range' id='{$animId}_speed' min='100' max='2000' value='700' class='w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500' onchange='updatePagingSpeed(\"{$animId}\", this.value)'><span class='text-xs text-gray-500'>Fast</span></div>";
     $output .= "</div>";
     $output .= "<div class='paging-visual-display p-4 bg-gray-50 rounded-lg'></div>";
     $output .= "<div class='step-description mt-2 p-2 bg-white border rounded text-sm font-mono'></div>";
     $output .= "<script>(function(){ var fn = function(){ if(typeof initPagingAnimation === 'function'){ initPagingAnimation('{$animId}', {$stepsJson}, 'lru'); } else { setTimeout(fn, 50); } }; if(document.readyState === 'complete'){ fn(); } else { window.addEventListener('load', fn); } })();</script>";
     $output .= "</div>";
+    
+    $output .= createProcessHistory($steps, 'paging');
     
     return $output;
 }
